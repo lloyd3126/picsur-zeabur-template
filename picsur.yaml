@@ -1,0 +1,201 @@
+apiVersion: zeabur.com/v1
+kind: Template
+metadata:
+  name: Picsur
+spec:
+  description: An easy to use, selfhostable image sharing service like Imgur with built in converting
+  icon: https://raw.githubusercontent.com/CaramelFur/Picsur/bdb4a5a8ad28539edb98e586727ea26ddf15f078/branding/logo/picsur.svg
+  coverImage: https://raw.githubusercontent.com/CaramelFur/Picsur/bdb4a5a8ad28539edb98e586727ea26ddf15f078/branding/logo/picsur.svg
+  tags:
+    - Tool
+    - Image
+    - Storage
+  variables:
+    - key: PICSUR_DOMAIN
+      type: DOMAIN
+      name: Domain
+      description: What is the domain you want for your Picsur instance?
+    - key: ADMIN_PASSWORD
+      type: STRING
+      name: Admin Password
+      description: The password for the admin account (default username is 'admin')
+  readme: |-
+    # Picsur
+
+    An easy to use, selfhostable image sharing service like Imgur with built in converting.
+
+    ## Features
+
+    - 🖼️ Upload and view images
+    - 👤 User accounts with roles and permissions
+    - 🔄 Convert images between formats (QOI, JPG, PNG, WEBP, TIFF, HEIF, BMP, GIF, JPG-XL, JPG-2000)
+    - ✂️ Edit images (Resize, Rotate, Flip, Strip transparency, Negative, Greyscale)
+    - 🗑️ Deletable and expiring images
+    - 📤 ShareX endpoint support
+    - 🔒 Proper CORS restrictions and Exif stripping
+
+    ## Default Admin Login
+
+    - **Username**: `admin`
+    - **Password**: The password you set during deployment
+
+    ## After Deployment
+
+    1. Visit your domain to access Picsur
+    2. Login with username `admin` and your password
+    3. Go to Settings to configure:
+       - User registration permissions
+       - Keep original image files option
+       - Maximum file size
+       - Other preferences
+
+    ## Documentation
+
+    For more information, visit the [official Picsur documentation](https://github.com/CaramelFur/Picsur).
+
+  services:
+    - name: postgres
+      icon: https://raw.githubusercontent.com/zeabur/service-icons/main/marketplace/postgresql.svg
+      template: PREBUILT
+      spec:
+        source:
+          image: postgres:17-alpine
+        ports:
+          - id: database
+            port: 5432
+            type: TCP
+        volumes:
+          - id: data
+            dir: /var/lib/postgresql/data
+        env:
+          POSTGRES_CONNECTION_STRING:
+            default: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
+            expose: true
+          POSTGRES_DATABASE:
+            default: ${POSTGRES_DB}
+            expose: true
+          POSTGRES_DB:
+            default: picsur
+          POSTGRES_HOST:
+            default: ${CONTAINER_HOSTNAME}
+            expose: true
+          POSTGRES_PASSWORD:
+            default: ${PASSWORD}
+            expose: true
+          POSTGRES_PORT:
+            default: ${DATABASE_PORT}
+            expose: true
+          POSTGRES_USER:
+            default: picsur
+          POSTGRES_USERNAME:
+            default: ${POSTGRES_USER}
+            expose: true
+        instructions:
+          - type: TEXT
+            title: Database Connection String
+            content: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}/${POSTGRES_DATABASE}
+            category: Connection Info
+          - type: TEXT
+            title: Database Host
+            content: ${PORT_FORWARDED_HOSTNAME}
+            category: Connection Info
+          - type: TEXT
+            title: Database Port
+            content: ${DATABASE_PORT_FORWARDED_PORT}
+            category: Connection Info
+          - type: PASSWORD
+            title: Database Password
+            content: ${POSTGRES_PASSWORD}
+            category: Credentials
+
+    - name: picsur
+      icon: https://raw.githubusercontent.com/CaramelFur/Picsur/bdb4a5a8ad28539edb98e586727ea26ddf15f078/branding/logo/picsur.svg
+      template: PREBUILT
+      domainKey: PICSUR_DOMAIN
+      dependencies:
+        - postgres
+      spec:
+        source:
+          image: ghcr.io/caramelfur/picsur:latest
+        ports:
+          - id: web
+            port: 8080
+            type: HTTP
+        env:
+          PICSUR_HOST:
+            default: "0.0.0.0"
+          PICSUR_PORT:
+            default: "8080"
+          PICSUR_DB_HOST:
+            default: ${POSTGRES_HOST}
+          PICSUR_DB_PORT:
+            default: ${POSTGRES_PORT}
+          PICSUR_DB_USERNAME:
+            default: ${POSTGRES_USERNAME}
+          PICSUR_DB_PASSWORD:
+            default: ${POSTGRES_PASSWORD}
+          PICSUR_DB_DATABASE:
+            default: ${POSTGRES_DATABASE}
+          PICSUR_ADMIN_PASSWORD:
+            default: ${ADMIN_PASSWORD}
+          PICSUR_MAX_FILE_SIZE:
+            default: "128000000"
+        instructions:
+          - type: DOMAIN
+            title: Picsur URL
+            content: https://${PICSUR_DOMAIN}
+            category: Access
+          - type: TEXT
+            title: Admin Username
+            content: admin
+            category: Credentials
+          - type: PASSWORD
+            title: Admin Password
+            content: ${ADMIN_PASSWORD}
+            category: Credentials
+
+localization:
+  zh-TW:
+    description: 一個易於使用、可自架的圖片分享服務，類似 Imgur，內建格式轉換功能
+    variables:
+      - key: PICSUR_DOMAIN
+        type: DOMAIN
+        name: 域名
+        description: 你想為 Picsur 實例使用什麼域名？
+      - key: ADMIN_PASSWORD
+        type: STRING
+        name: 管理員密碼
+        description: 管理員帳號的密碼（預設使用者名稱為 'admin'）
+    readme: |-
+      # Picsur
+
+      一個易於使用、可自架的圖片分享服務，類似 Imgur，內建格式轉換功能。
+
+      ## 功能特色
+
+      - 🖼️ 上傳和查看圖片
+      - 👤 具有角色和權限的使用者帳號系統
+      - 🔄 在多種格式間轉換圖片（QOI、JPG、PNG、WEBP、TIFF、HEIF、BMP、GIF、JPG-XL、JPG-2000）
+      - ✂️ 編輯圖片（調整大小、旋轉、翻轉、移除透明度、負片、灰階）
+      - 🗑️ 可刪除和設定過期的圖片
+      - 📤 支援 ShareX 端點
+      - 🔒 適當的 CORS 限制和 Exif 資料清除
+
+      ## 預設管理員登入資訊
+
+      - **使用者名稱**：`admin`
+      - **密碼**：你在部署時設定的密碼
+
+      ## 部署後步驟
+
+      1. 訪問你的域名以存取 Picsur
+      2. 使用使用者名稱 `admin` 和你的密碼登入
+      3. 前往設定頁面進行配置：
+         - 使用者註冊權限
+         - 保留原始圖片檔案選項
+         - 最大檔案大小
+         - 其他偏好設定
+
+      ## 文件
+
+      更多資訊請訪問 [Picsur 官方文件](https://github.com/CaramelFur/Picsur)。
